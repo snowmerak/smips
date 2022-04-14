@@ -13,8 +13,8 @@ type Type uint8
 
 // OpCodeTypes
 const (
-	TypeR = Type(0b11111101)
-	TypeI = Type(0b11111110)
+	TypeR = Type(0b00000000)
+	TypeI = Type(0b10000010)
 	TypeJ = Type(0b11111111)
 )
 
@@ -24,7 +24,7 @@ func (op OpCode) Type() Type {
 	if t == TypeJ {
 		return TypeJ
 	}
-	if t == TypeI {
+	if t < TypeJ && t >= TypeI {
 		return TypeI
 	}
 	return TypeR
