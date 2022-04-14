@@ -100,7 +100,8 @@ func (r *Register) Get(index byte) uint64 {
 	return r.ra
 }
 
-// GetV returns the value of the register at the given index.
+// GetV returns the value of the register at the given index. index <= 32
+// value of function returns.
 func (r *Register) GetV(index byte) uint64 {
 	if index > 32 {
 		return 0
@@ -108,7 +109,8 @@ func (r *Register) GetV(index byte) uint64 {
 	return r.v[index]
 }
 
-// SetV sets the value of the register at the given index.
+// SetV sets the value of the register at the given index. index <= 32
+// value of function returns.
 func (r *Register) SetV(index byte, value uint64) {
 	if index > 32 {
 		return
@@ -116,7 +118,8 @@ func (r *Register) SetV(index byte, value uint64) {
 	r.v[index] = value
 }
 
-// GetA returns the value of the register at the given index.
+// GetA returns the value of the register at the given index. index <= 32
+// value of function paramters.
 func (r *Register) GetA(index byte) uint64 {
 	if index > 32 {
 		return 0
@@ -124,7 +127,8 @@ func (r *Register) GetA(index byte) uint64 {
 	return r.a[index]
 }
 
-// SetA sets the value of the register at the given index.
+// SetA sets the value of the register at the given index. index <= 32
+// value of function paramters.
 func (r *Register) SetA(index byte, value uint64) {
 	if index > 32 {
 		return
@@ -132,7 +136,8 @@ func (r *Register) SetA(index byte, value uint64) {
 	r.a[index] = value
 }
 
-// GetT returns the value of the register at the given index.
+// GetT returns the value of the register at the given index. index <= 100
+// temporary values.
 func (r *Register) GetT(index byte) uint64 {
 	if index > 100 {
 		return 0
@@ -140,7 +145,8 @@ func (r *Register) GetT(index byte) uint64 {
 	return r.t[index]
 }
 
-// SetT sets the value of the register at the given index.
+// SetT sets the value of the register at the given index. index <= 100
+// temporary values.
 func (r *Register) SetT(index byte, value uint64) {
 	if index > 100 {
 		return
@@ -148,7 +154,8 @@ func (r *Register) SetT(index byte, value uint64) {
 	r.t[index] = value
 }
 
-// GetS returns the value of the register at the given index.
+// GetS returns the value of the register at the given index. index <= 70
+// persistance values.
 func (r *Register) GetS(index byte) uint64 {
 	if index > 70 {
 		return 0
@@ -156,7 +163,8 @@ func (r *Register) GetS(index byte) uint64 {
 	return r.s[index]
 }
 
-// SetS sets the value of the register at the given index.
+// SetS sets the value of the register at the given index. index <= 70
+// persistance values.
 func (r *Register) SetS(index byte, value uint64) {
 	if index > 70 {
 		return
@@ -164,7 +172,8 @@ func (r *Register) SetS(index byte, value uint64) {
 	r.s[index] = value
 }
 
-// GetK returns the value of the register at the given index.
+// GetK returns the value of the register at the given index. index <= 16
+// values for os kernels.
 func (r *Register) GetK(index byte) uint64 {
 	if index > 16 {
 		return 0
@@ -172,7 +181,8 @@ func (r *Register) GetK(index byte) uint64 {
 	return r.k[index]
 }
 
-// SetK sets the value of the register at the given index.
+// SetK sets the value of the register at the given index. index <= 16
+// values for os kernels.
 func (r *Register) SetK(index byte, value uint64) {
 	if index > 16 {
 		return
@@ -181,41 +191,49 @@ func (r *Register) SetK(index byte, value uint64) {
 }
 
 // GetGP returns the value of the register.
+// global poiner.
 func (r *Register) GetGP() uint64 {
 	return r.gp
 }
 
 // SetGP sets the value of the register.
+// global poiner.
 func (r *Register) SetGP(value uint64) {
 	r.gp = value
 }
 
 // GetSP returns the value of the register.
+// stack pointer.
 func (r *Register) GetSP() uint64 {
 	return r.sp
 }
 
 // SetSP sets the value of the register.
+// stack pointer.
 func (r *Register) SetSP(value uint64) {
 	r.sp = value
 }
 
 // GetFP returns the value of the register.
+// function pointer.
 func (r *Register) GetFP() uint64 {
 	return r.fp
 }
 
 // SetFP sets the value of the register.
+// function pointer.
 func (r *Register) SetFP(value uint64) {
 	r.fp = value
 }
 
 // GetRA returns the value of the register.
+// returning address.
 func (r *Register) GetRA() uint64 {
 	return r.ra
 }
 
 // SetRA sets the value of the register.
+// returning address.
 func (r *Register) SetRA(value uint64) {
 	r.ra = value
 }
