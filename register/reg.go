@@ -170,6 +170,30 @@ func (r *Register) SetT(index byte, value uint64) {
 	r.t[index] = value
 }
 
+// GetHi returns the value of the register.
+// high 64 bits of 128 bit value.
+func (r *Register) GetHi() uint64 {
+	return r.t[len(r.t)-2]
+}
+
+// SetHi sets the value of the register.
+// high 64 bits of 128 bit value.
+func (r *Register) SetHi(value uint64) {
+	r.t[len(r.t)-2] = value
+}
+
+// GetLo returns the value of the register.
+// low 64 bits of 128 bit value.
+func (r *Register) GetLo() uint64 {
+	return r.t[len(r.t)-1]
+}
+
+// SetLo sets the value of the register.
+// low 64 bits of 128 bit value.
+func (r *Register) SetLo(value uint64) {
+	r.t[len(r.t)-1] = value
+}
+
 // GetS returns the value of the register at the given index. index <= 70
 // persistance values.
 func (r *Register) GetS(index byte) uint64 {
