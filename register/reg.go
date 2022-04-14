@@ -1,5 +1,7 @@
 package register
 
+import "sync"
+
 // Register is a register. lol.
 type Register struct {
 	zero uint64      // 0
@@ -15,9 +17,23 @@ type Register struct {
 	ra   uint64      // 255
 }
 
+var pool = sync.Pool{
+	New: func() interface{} {
+		return &Register{}
+	},
+}
+
 // New returns a new Register.
 func New() *Register {
-	return new(Register)
+	return pool.Get().(*Register)
+}
+
+// Return returns register to the pool.
+func (r *Register) Return() {
+	for i := 0; i < 256; i++ {
+		r.Set(byte(i), 0)
+	}
+	pool.Put(r)
 }
 
 // Set sets the value of the register at the given index.
