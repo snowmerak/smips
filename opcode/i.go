@@ -14,7 +14,7 @@ func (i I) RegisterDestination() uint8 {
 	return uint8(i >> 48 & 0b11111111)
 }
 
-// Immersion is the immediate value.
+// Immediate is the immediate value.
 func (i I) Immediate() uint64 {
 	return uint64(i >> 8 & 0b1111111111111111111111111111111111111111)
 }
