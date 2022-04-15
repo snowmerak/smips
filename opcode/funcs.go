@@ -14,9 +14,26 @@ const (
 	RShiftLeft
 	RShiftRightLogical
 	RShiftRightArithmetic
+	RBranchEqual
+	RBranchNotEqual
+	RBranchLessThan
+	RBranchLessThanOrEqual
+	RBranchGreaterThan
+	RBranchGreaterThanOrEqual
+	RLoadData
+	RStoreData
+	RFloatAdd
+	RFloatSub
+	RFloatMul
+	RFloatDiv
 )
 const (
-	IAdd = uint8(TypeI + iota)
+	ISet = uint8(TypeI + iota)
+	IAdd
+	ISub
+	IMul
+	IDiv
+	IRem
 )
 const (
 	Jump = uint8(TypeJ + iota)
