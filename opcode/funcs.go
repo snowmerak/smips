@@ -42,4 +42,8 @@ const (
 	JumpAndPassParameter
 	JumpAndRemoveRegister
 	JumpAndReturnValue
+	JPushRegister
+	JBringParameter
+	JPopRegister
+	JBringReturns
 )
