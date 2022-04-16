@@ -2,7 +2,8 @@ package opcode
 
 // Funcs are opcode functions.
 const (
-	RAdd = uint8(TypeR + iota)
+	SystemCall = uint8(TypeR + iota)
+	RAdd
 	RSub
 	RMul
 	RDiv
