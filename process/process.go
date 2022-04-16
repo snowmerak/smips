@@ -14,3 +14,21 @@ type Process struct {
 
 	pc uint64
 }
+
+// New creates a new process.
+func New(opcodes ...opcode.OpCode) *Process {
+	return &Process{
+		memory:        memory.New(1024),
+		opcodes:       opcodes,
+		registerStack: []*register.Register{register.New()},
+	}
+}
+
+// Execute executes the process.
+func (p *Process) Execute() {
+	for p.pc < uint64(len(p.opcodes)) {
+		opcode := p.opcodes[p.pc]
+		Execute(p.pc, &opcode, p.memory, &p.registerStack)
+		p.pc++
+	}
+}
