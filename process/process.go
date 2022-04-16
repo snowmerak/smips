@@ -1,6 +1,8 @@
 package process
 
 import (
+	"io"
+
 	"github.com/snowmerak/smips/memory"
 	"github.com/snowmerak/smips/opcode"
 	"github.com/snowmerak/smips/register"
@@ -8,6 +10,8 @@ import (
 
 // Process is a process. lol.
 type Process struct {
+	reader        []io.Reader
+	writer        []io.Writer
 	memory        *memory.Memory
 	opcodes       []opcode.OpCode
 	registerStack []*register.Register
@@ -30,5 +34,17 @@ func (p *Process) Execute() {
 		opcode := p.opcodes[p.pc]
 		Execute(p.pc, &opcode, p.memory, &p.registerStack)
 		p.pc++
+	}
+	for _, reader := range p.reader {
+		readCloser, ok := reader.(io.ReadCloser)
+		if ok {
+			readCloser.Close()
+		}
+	}
+	for _, writer := range p.writer {
+		writeCloser, ok := writer.(io.WriteCloser)
+		if ok {
+			writeCloser.Close()
+		}
 	}
 }
