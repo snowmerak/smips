@@ -58,27 +58,27 @@ func (m *Memory) GetFreeSpace(size uint64) uint64 {
 }
 
 // Alloc allocates a new space.
-func (m *Memory) Alloc(size uint64) {
+func (m *Memory) Alloc(size uint64) (uint64, bool) {
 	m.Lock()
 	defer m.Unlock()
 	if size == 0 {
-		return
+		return 0, false
 	}
 
 	address := m.GetFreeSpace(size)
 	m.marks = append(m.marks, pair{address, address + size})
-	return
+	return address, true
 }
 
 // Free frees a space.
-func (m *Memory) Free(address uint64) {
+func (m *Memory) Free(address uint64) bool {
 	m.Lock()
 	defer m.Unlock()
 	idx := sort.Search(len(m.marks), func(i int) bool {
 		return m.marks[i].start >= address
 	})
 	if idx == len(m.marks) || m.marks[idx].start != address {
-		return
+		return false
 	}
 	s := m.marks[idx].start
 	e := m.marks[idx].end
@@ -87,4 +87,26 @@ func (m *Memory) Free(address uint64) {
 		s++
 	}
 	m.marks = append(m.marks[:idx], m.marks[idx+1:]...)
+	return true
+}
+
+// Store stores a value.
+func (m *Memory) Store(address uint64, value uint64) {
+	m.space[address] = value
+}
+
+// Load loads a value.
+func (m *Memory) Load(address uint64) uint64 {
+	return m.space[address]
+}
+
+// End returns the end of the structrue.
+func (m *Memory) End(address uint64) (uint64, bool) {
+	idx := sort.Search(len(m.marks), func(i int) bool {
+		return m.marks[i].start >= address
+	})
+	if idx == len(m.marks) || m.marks[idx].start != address {
+		return 0, false
+	}
+	return m.marks[idx].end, true
 }
