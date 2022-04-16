@@ -15,7 +15,7 @@ type Type uint8
 const (
 	TypeR = Type(0b00000000)
 	TypeI = Type(0b10000010)
-	TypeJ = Type(0b11111100)
+	TypeJ = Type(0b11111000)
 )
 
 // Type returns the type of the opcode.
