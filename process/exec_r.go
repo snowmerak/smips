@@ -9,7 +9,7 @@ import (
 	"github.com/snowmerak/smips/register"
 )
 
-func executeR(pc *uint64, code *opcode.OpCode, memory *memory.Memory, registers *[]*register.Register) {
+func executeR(pc *uint64, code *opcode.OpCode, _ *memory.Memory, registers *[]*register.Register) {
 	r := opcode.R(*code)
 	reg := (*registers)[len(*registers)-1]
 	a := reg.Get(r.RegisterSourceA())
