@@ -38,5 +38,7 @@ const (
 const (
 	Jump = uint8(TypeJ + iota)
 	JumpAndAddRegister
+	JumpAndPassParameter
 	JumpAndRemoveRegister
+	JumpAndReturnValue
 )
