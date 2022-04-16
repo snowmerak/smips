@@ -9,7 +9,7 @@ import (
 	"github.com/snowmerak/smips/register"
 )
 
-func executeR(pc uint64, code *opcode.OpCode, memory *memory.Memory, registers *[]*register.Register) {
+func executeR(pc *uint64, code *opcode.OpCode, memory *memory.Memory, registers *[]*register.Register) {
 	r := opcode.R(*code)
 	reg := (*registers)[len(*registers)-1]
 	a := reg.Get(r.RegisterSourceA())
@@ -58,27 +58,27 @@ func executeR(pc uint64, code *opcode.OpCode, memory *memory.Memory, registers *
 		reg.Set(r.RegisterDestination(), uint64(sra))
 	case opcode.RBranchEqual:
 		if a == b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RBranchNotEqual:
 		if a != b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RBranchLessThan:
 		if a < b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RBranchLessThanOrEqual:
 		if a <= b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RBranchGreaterThan:
 		if a > b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RBranchGreaterThanOrEqual:
 		if a >= b {
-			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+			*pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
 		}
 	case opcode.RFloatAdd:
 		fa := math.Float64frombits(a)

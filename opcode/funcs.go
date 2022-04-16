@@ -34,6 +34,7 @@ const (
 	IRem
 	ILoadData
 	IStoreData
+	IJump
 )
 const (
 	Jump = uint8(TypeJ + iota)
