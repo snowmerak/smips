@@ -45,5 +45,23 @@ func executeJ(pc uint64, code *opcode.OpCode, _ *memory.Memory, registers *[]*re
 		}
 		last.Return()
 		pc = j.Address()
+	case opcode.JPushRegister:
+		*registers = append(*registers, register.New())
+	case opcode.JBringParameter:
+		last := (*registers)[len(*registers)-1]
+		secondLast := (*registers)[len(*registers)-2]
+		for i := byte(0); i < 32; i++ {
+			last.SetA(i, secondLast.GetA(i))
+		}
+	case opcode.JPopRegister:
+		last := (*registers)[len(*registers)-1]
+		*registers = (*registers)[:len(*registers)-1]
+		last.Return()
+	case opcode.JBringReturns:
+		last := (*registers)[len(*registers)-1]
+		secondLast := (*registers)[len(*registers)-2]
+		for i := byte(0); i < 32; i++ {
+			secondLast.SetV(i, last.GetV(i))
+		}
 	}
 }
