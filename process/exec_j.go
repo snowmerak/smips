@@ -25,9 +25,25 @@ func executeJ(pc uint64, code *opcode.OpCode, _ *memory.Memory, registers *[]*re
 	case opcode.JumpAndAddRegister:
 		*registers = append(*registers, register.New())
 		pc = j.Address()
-	case opcode.JumpAndRemoveRegister:
-		*registers = (*registers)[:len(*registers)-1]
+	case opcode.JumpAndPassParameter:
+		newReg := register.New()
+		for i := byte(0); i < 32; i++ {
+			newReg.SetA(i, (*registers)[len(*registers)-1].GetA(i))
+		}
+		*registers = append(*registers, newReg)
 		pc = j.Address()
-	case 3:
+	case opcode.JumpAndRemoveRegister:
+		last := (*registers)[len(*registers)-1]
+		*registers = (*registers)[:len(*registers)-1]
+		last.Return()
+		pc = j.Address()
+	case opcode.JumpAndReturnValue:
+		last := (*registers)[len(*registers)-1]
+		*registers = (*registers)[:len(*registers)-1]
+		for i := byte(0); i < 32; i++ {
+			(*registers)[len(*registers)-1].SetV(i, last.GetV(i))
+		}
+		last.Return()
+		pc = j.Address()
 	}
 }
