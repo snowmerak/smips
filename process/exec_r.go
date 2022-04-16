@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math"
 	"math/bits"
 
 	"github.com/snowmerak/smips/memory"
@@ -55,5 +56,49 @@ func executeR(pc uint64, code *opcode.OpCode, memory *memory.Memory, registers *
 	case opcode.RShiftRightArithmetic:
 		sra := int64(a) >> int64(b)
 		reg.Set(r.RegisterDestination(), uint64(sra))
+	case opcode.RBranchEqual:
+		if a == b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RBranchNotEqual:
+		if a != b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RBranchLessThan:
+		if a < b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RBranchLessThanOrEqual:
+		if a <= b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RBranchGreaterThan:
+		if a > b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RBranchGreaterThanOrEqual:
+		if a >= b {
+			pc = uint64((*registers)[len(*registers)-1].Get(r.RegisterDestination()))
+		}
+	case opcode.RFloatAdd:
+		fa := math.Float64frombits(a)
+		fb := math.Float64frombits(b)
+		fadd := fa + fb
+		reg.Set(r.RegisterDestination(), math.Float64bits(fadd))
+	case opcode.RFloatSub:
+		fa := math.Float64frombits(a)
+		fb := math.Float64frombits(b)
+		fsub := fa - fb
+		reg.Set(r.RegisterDestination(), math.Float64bits(fsub))
+	case opcode.RFloatMul:
+		fa := math.Float64frombits(a)
+		fb := math.Float64frombits(b)
+		fmul := fa * fb
+		reg.Set(r.RegisterDestination(), math.Float64bits(fmul))
+	case opcode.RFloatDiv:
+		fa := math.Float64frombits(a)
+		fb := math.Float64frombits(b)
+		fdiv := fa / fb
+		reg.Set(r.RegisterDestination(), math.Float64bits(fdiv))
 	}
 }
