@@ -20,8 +20,6 @@ const (
 	RBranchLessThanOrEqual
 	RBranchGreaterThan
 	RBranchGreaterThanOrEqual
-	RLoadData
-	RStoreData
 	RFloatAdd
 	RFloatSub
 	RFloatMul
@@ -34,9 +32,12 @@ const (
 	IMul
 	IDiv
 	IRem
+	ILoadData
+	IStoreData
 )
 const (
 	Jump = uint8(TypeJ + iota)
+	JumpTo
 	JumpAndAddRegister
 	JumpAndPassParameter
 	JumpAndRemoveRegister
