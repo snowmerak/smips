@@ -98,3 +98,133 @@ func (s *Stack) Plunder() {
 	}
 	pop.Return()
 }
+
+// Set is the set of Register.
+func (r *Stack) Set(index uint16, value uint64) {
+	last := r.Last()
+	switch index {
+	case 0:
+		last.zero = value
+	case 1:
+		last.one = value
+	case 2:
+		last.two = value
+	case 4:
+		last.four = value
+	default:
+		if index < single {
+			last.params[index] = value
+		} else if index < single*2 {
+			last.temporary[index-single] = value
+		} else if index < single*3 {
+			last.extra[index-single*2] = value
+		} else {
+			last.returns[index-single*3] = value
+		}
+	}
+}
+
+// Get is the get of Register.
+func (r *Stack) Get(index uint16) uint64 {
+	last := r.Last()
+	switch index {
+	case 0:
+		return last.zero
+	case 1:
+		return last.one
+	case 2:
+		return last.two
+	case 4:
+		return last.four
+	default:
+		if index < single {
+			return last.params[index]
+		} else if index < single*2 {
+			return last.temporary[index-single]
+		} else if index < single*3 {
+			return last.extra[index-single*2]
+		} else {
+			return last.returns[index-single*3]
+		}
+	}
+}
+
+// SetParams is the set of params of Register.
+func (s *Stack) SetParams(index uint16, value uint64) {
+	r := s.Last()
+	if index < single {
+		r.params[index] = value
+	}
+}
+
+// GetParams is the get of params of Register.
+func (s *Stack) GetParams(index uint16) uint64 {
+	r := s.Last()
+	if index < single {
+		return r.params[index]
+	}
+	return 0
+}
+
+// SetTemporary is the set of params of Register.
+func (s *Stack) SetTemporary(index uint16, value uint64) {
+	r := s.Last()
+	if index < single {
+		r.temporary[index] = value
+	}
+}
+
+// GetTemporary is the get of params of Register.
+func (s *Stack) GetTemporary(index uint16) uint64 {
+	r := s.Last()
+	if index < single {
+		return r.temporary[index]
+	}
+	return 0
+}
+
+// SetHi is the set of params of Register.
+func (s *Stack) SetHi(value uint64) {
+	r := s.Last()
+	r.temporary[single-1] = value
+}
+
+// GetHi is the get of params of Register.
+func (s *Stack) GetHi() uint64 {
+	r := s.Last()
+	return r.temporary[single-1]
+}
+
+// SetExtra is the set of params of Register.
+func (s *Stack) SetExtra(index uint16, value uint64) {
+	r := s.Last()
+	if index < single {
+		r.extra[index] = value
+	}
+}
+
+// GetExtra is the get of params of Register.
+func (s *Stack) GetExtra(index uint16) uint64 {
+	r := s.Last()
+	if index < single {
+		return r.extra[index]
+	}
+	return 0
+}
+
+// SetReturns is the set of params of Register.
+func (s *Stack) SetReturns(index uint16, value uint64) {
+	r := s.Last()
+	if index < single {
+		r.returns[index] = value
+	}
+}
+
+// GetReturns is the get of params of Register.
+func (s *Stack) GetReturns(index uint16) uint64 {
+	r := s.Last()
+	if index < single {
+		return r.returns[index]
+	}
+	return 0
+}
