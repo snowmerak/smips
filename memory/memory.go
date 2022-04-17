@@ -1,112 +1,62 @@
 package memory
 
-import (
-	"runtime"
-	"sort"
-	"sync/atomic"
-)
-
-// pair is a pair of start and end. start <= index < end.
-type pair struct {
-	start uint64
-	end   uint64
+// Block is a memory block.
+type Block struct {
+	Value []uint8
+	Count uint64
 }
 
 // Memory is a memory. lol.
 type Memory struct {
-	space []uint64
-	marks []pair
-	lock  int64
+	table map[uint64]*Block
+	tombs []uint64
 }
 
-// New returns a new Memory.
-func New(size int) *Memory {
-	return &Memory{
-		space: make([]uint64, size*8),
-		marks: make([]pair, 0),
+// New returns a new memory.
+func New() Memory {
+	return Memory{
+		table: make(map[uint64]*Block),
+		tombs: make([]uint64, 0),
 	}
 }
 
-// Lock locks the memory.
-func (m *Memory) Lock() {
-	for atomic.CompareAndSwapInt64(&m.lock, 0, 1) {
-		runtime.Gosched()
+// Get is the getter of the memory.
+// Address is the key of the memory.
+// Offset is the index of the block.
+func (m *Memory) Get(addr, offset uint64) uint8 {
+	block, ok := m.table[addr]
+	if !ok {
+		return 0
 	}
-}
-
-// Unlock unlocks the memory.
-func (m *Memory) Unlock() {
-	atomic.StoreInt64(&m.lock, 0)
-}
-
-// GetFreeSpace returns the first free space.
-func (m *Memory) GetFreeSpace(size uint64) uint64 {
-	prev := uint64(0)
-	for _, v := range m.marks {
-		if v.start == 0 {
-			continue
-		}
-		if v.start-prev >= size {
-			return prev
-		}
-		prev = v.end
+	if offset >= uint64(len(block.Value)) {
+		return 0
 	}
-
-	alloced := uint64(len(m.space)) - prev
-	m.space = append(m.space, make([]uint64, size-alloced+1)...)
-	return prev
+	return block.Value[offset]
 }
 
-// Alloc allocates a new space.
-func (m *Memory) Alloc(size uint64) (uint64, bool) {
-	m.Lock()
-	defer m.Unlock()
-	if size == 0 {
-		return 0, false
+// Free free the memory block at addr.
+func (m *Memory) Free(addr uint64) uint8 {
+	_, ok := m.table[addr]
+	if !ok {
+		return 0
 	}
-
-	address := m.GetFreeSpace(size)
-	m.marks = append(m.marks, pair{address, address + size})
-	return address, true
+	m.tombs = append(m.tombs, addr)
+	delete(m.table, addr)
+	return 1
 }
 
-// Free frees a space.
-func (m *Memory) Free(address uint64) bool {
-	m.Lock()
-	defer m.Unlock()
-	idx := sort.Search(len(m.marks), func(i int) bool {
-		return m.marks[i].start >= address
-	})
-	if idx == len(m.marks) || m.marks[idx].start != address {
-		return false
+// Alloc allocates a memory block and return the address.
+func (m *Memory) Alloc(size int64) int64 {
+	addr := uint64(0)
+	if len(m.tombs) > 0 {
+		addr = m.tombs[len(m.tombs)-1]
+		m.tombs = m.tombs[:len(m.tombs)-1]
+	} else {
+		addr = uint64(len(m.table))
 	}
-	s := m.marks[idx].start
-	e := m.marks[idx].end
-	for s < e {
-		m.space[s] = 0
-		s++
+	m.table[addr] = &Block{
+		Value: make([]uint8, size),
+		Count: 1,
 	}
-	m.marks = append(m.marks[:idx], m.marks[idx+1:]...)
-	return true
-}
-
-// Store stores a value.
-func (m *Memory) Store(address uint64, value uint64) {
-	m.space[address] = value
-}
-
-// Load loads a value.
-func (m *Memory) Load(address uint64) uint64 {
-	return m.space[address]
-}
-
-// End returns the end of the structrue.
-func (m *Memory) End(address uint64) (uint64, bool) {
-	idx := sort.Search(len(m.marks), func(i int) bool {
-		return m.marks[i].start >= address
-	})
-	if idx == len(m.marks) || m.marks[idx].start != address {
-		return 0, false
-	}
-	return m.marks[idx].end, true
+	return int64(addr)
 }
