@@ -82,9 +82,42 @@ const (
 	// can pass prameter to library via extra registers.
 	// can receive return value from library via extra registers.
 	OpLib
-	// OpCall is call operation.
-	// data is kind of system call.
+
+	// --------------------
+	// System Calls.
+	// data is extra data.
 	// ra, rb is source of system call.
 	// rd is destination of system call.
-	OpCall
+
+	// OpenFile
+	// Ra is String address of file name on memory.
+	// Rb is Mode.
+	// Rd will get the file descriptor.
+	OpenFile
+	// CloseFile
+	// Ra is the file descriptor.
+	// Rd will get the closed status.
+	CloseFile
+	// ReadFile
+	// Ra is the file descriptor.
+	// Data is size.
+	// Rd will get the read bytes.
+	ReadFile
+	// ReadFileAt
+	// Ra is the file descriptor.
+	// Rb is the offset.
+	// Data is size.
+	// Rd will get the read bytes.
+	ReadFileAt
+	// WriteFile
+	// Ra is the file descriptor.
+	// Data is size.
+	// Rd will get the written bytes.
+	WriteFile
+	// WriteFileAt
+	// Ra is the file descriptor.
+	// Rb is the offset.
+	// Data is size.
+	// Rd will get the written bytes.
+	WriteFileAt
 )

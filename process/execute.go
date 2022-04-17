@@ -87,7 +87,7 @@ func (p *Process) Eval() bool {
 		p.stack.Call(register.New())
 		p.libs[op.Ra()].Execute()
 		p.stack.Plunder()
-	case opcode.OpCall:
+	default:
 		SystemCall(p, op)
 	}
 	return true
