@@ -46,7 +46,7 @@ func (m *Memory) Free(addr uint64) uint8 {
 }
 
 // Alloc allocates a memory block and return the address.
-func (m *Memory) Alloc(size int64) int64 {
+func (m *Memory) Alloc(size uint64) uint64 {
 	addr := uint64(0)
 	if len(m.tombs) > 0 {
 		addr = m.tombs[len(m.tombs)-1]
@@ -58,5 +58,5 @@ func (m *Memory) Alloc(size int64) int64 {
 		Value: make([]uint8, size),
 		Count: 1,
 	}
-	return int64(addr)
+	return addr
 }
