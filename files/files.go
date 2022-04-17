@@ -20,13 +20,14 @@ const (
 	FileAppender
 )
 
-func New() *Files {
-	return &Files{
+func New() Files {
+	return Files{
 		table: map[uint64]interface{}{
 			uint64(Stdin):  os.Stdin,
 			uint64(Stdout): os.Stdout,
 			uint64(Stderr): os.Stderr,
 		},
+		tombs: []uint64{},
 	}
 }
 
@@ -70,7 +71,7 @@ func (f *Files) OpenFile(path string, mod uint8) uint64 {
 }
 
 // CloseFile closes a file.
-func (f *Files) CloseFile(index uint64) uint8 {
+func (f *Files) CloseFile(index uint64) uint64 {
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -134,7 +135,7 @@ func (f *Files) ReadFileAt(index uint64, offset uint64, size uint8) uint64 {
 }
 
 // WriteFile writes a file.
-func (f *Files) WriteFile(index uint64, size uint8, value uint64) uint8 {
+func (f *Files) WriteFile(index uint64, size uint8, value uint64) uint64 {
 	size = size & 0b00000111
 	file, ok := f.table[index]
 	if !ok {
@@ -157,7 +158,7 @@ func (f *Files) WriteFile(index uint64, size uint8, value uint64) uint8 {
 }
 
 // WriteFileAt writes a file at a specified offset.
-func (f *Files) WriteFileAt(index uint64, offset uint64, size uint8, value uint64) uint8 {
+func (f *Files) WriteFileAt(index uint64, offset uint64, size uint8, value uint64) uint64 {
 	size = size & 0b00000111
 	file, ok := f.table[index]
 	if !ok {
