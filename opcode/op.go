@@ -112,12 +112,14 @@ const (
 	// WriteFile
 	// Ra is the file descriptor.
 	// Data is size.
-	// Rd will get the written bytes.
+	// Rd is the value.
+	// Hi will get the written bytes.
 	WriteFile
 	// WriteFileAt
 	// Ra is the file descriptor.
 	// Rb is the offset.
 	// Data is size.
-	// Rd will get the written bytes.
+	// Rd is the value.
+	// Hi will get the written bytes.
 	WriteFileAt
 )
