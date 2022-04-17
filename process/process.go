@@ -1,50 +1,31 @@
 package process
 
 import (
-	"io"
-
 	"github.com/snowmerak/smips/memory"
 	"github.com/snowmerak/smips/opcode"
 	"github.com/snowmerak/smips/register"
 )
 
-// Process is a process. lol.
 type Process struct {
-	reader        []io.Reader
-	writer        []io.Writer
-	memory        *memory.Memory
-	opcodes       []opcode.OpCode
-	registerStack []*register.Register
-
-	pc uint64
+	memory       memory.Memory
+	stack        register.Stack
+	programCount uint64
+	opcodes      []opcode.Opcode
+	libs         []*Process
 }
 
-// New creates a new process.
-func New(opcodes ...opcode.OpCode) *Process {
-	return &Process{
-		memory:        memory.New(1024),
-		opcodes:       opcodes,
-		registerStack: []*register.Register{register.New()},
+func New(opcodes ...opcode.Opcode) *Process {
+	p := &Process{
+		memory:       memory.New(),
+		stack:        register.NewStack(),
+		programCount: 0,
+		opcodes:      opcodes,
+		libs:         make([]*Process, 0),
 	}
+	return p
 }
 
-// Execute executes the process.
-func (p *Process) Execute() {
-	for p.pc < uint64(len(p.opcodes)) {
-		opcode := p.opcodes[p.pc]
-		Execute(p.pc, &opcode, p.memory, &p.registerStack)
-		p.pc++
-	}
-	for _, reader := range p.reader {
-		readCloser, ok := reader.(io.ReadCloser)
-		if ok {
-			readCloser.Close()
-		}
-	}
-	for _, writer := range p.writer {
-		writeCloser, ok := writer.(io.WriteCloser)
-		if ok {
-			writeCloser.Close()
-		}
-	}
+func (p *Process) AddLib(lib *Process) *Process {
+	p.libs = append(p.libs, lib)
+	return p
 }
