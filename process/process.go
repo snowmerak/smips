@@ -22,6 +22,7 @@ func New(opcodes ...opcode.Opcode) *Process {
 		opcodes:      opcodes,
 		libs:         make([]*Process, 0),
 	}
+	p.stack.Push(register.New())
 	return p
 }
 
