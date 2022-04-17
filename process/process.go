@@ -1,12 +1,14 @@
 package process
 
 import (
+	"github.com/snowmerak/smips/files"
 	"github.com/snowmerak/smips/memory"
 	"github.com/snowmerak/smips/opcode"
 	"github.com/snowmerak/smips/register"
 )
 
 type Process struct {
+	files        files.Files
 	memory       memory.Memory
 	stack        register.Stack
 	programCount uint64
@@ -16,6 +18,7 @@ type Process struct {
 
 func New(opcodes ...opcode.Opcode) *Process {
 	p := &Process{
+		files:        files.New(),
 		memory:       memory.New(),
 		stack:        register.NewStack(),
 		programCount: 0,
