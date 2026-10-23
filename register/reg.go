@@ -48,7 +48,7 @@ func (r *Register) Return() {
 
 // pool is the pool of Register.
 var pool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &Register{}
 	},
 }

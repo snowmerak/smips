@@ -7,7 +7,7 @@ import (
 
 // Files is a file table.
 type Files struct {
-	table map[uint64]interface{}
+	table map[uint64]any
 	tombs []uint64
 }
 
@@ -22,7 +22,7 @@ const (
 
 func New() Files {
 	return Files{
-		table: map[uint64]interface{}{
+		table: map[uint64]any{
 			uint64(Stdin):  os.Stdin,
 			uint64(Stdout): os.Stdout,
 			uint64(Stderr): os.Stderr,
