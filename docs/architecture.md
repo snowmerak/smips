@@ -1,22 +1,26 @@
-# smips 구현에서 역도출한 설계
+# smips 초기 구현에서 역도출한 설계 기록
 
 - 분석일: 2026-10-24
 - 기준 커밋: `89668635677b26c6f2c604e66eec24ef998af3fa`
 - 대상: README, 전체 Go 소스, `go.mod`
-- 상태: 해당 커밋의 구현을 설명하는 분석 기록. 새로운 설계의 승인이나 변경 계획을 뜻하지 않는다.
+- 상태: 수정 전 구현을 설명하는 역사적 분석 기록. 이후 수정된 현재 동작과 호출 규약은 [README](../readme.md)를 기준으로 한다.
 - 독자: 현재 구조를 이해하거나 후속 구현을 이어갈 개발자
 
-이 문서는 **구현 사실**, **주석·구조로부터 복원한 의도**, **미확정 사항**을 구분한다. 현재 동작의 근거는 링크한 소스이며, 코드가 변경되면 관련 설명과 검증 결과를 다시 확인해야 한다. README와 주석이 실행 코드와 충돌하는 경우 그 차이를 명시한다.
+이 문서는 **기준 커밋 당시의 구현 사실**, **주석·구조로부터 복원한 의도**, **당시 미확정 사항**을 구분한다. 아래의 결함 목록과 실행 확인 결과는 수정 전 상태이며, 현재 코드의 결함 목록이 아니다. 설계 수정 이후에도 작성자의 회상과 초기 분석 근거를 보존하기 위해 기록을 유지한다.
+
+작성자는 분석 후 원래 구상을 “스택마다 레지스터를 가지고, 스택에 파라미터를 넣고 하위 스택을 호출하는 구조”로 기억한다고 설명했다. 정확한 세부사항에 대한 확정 진술은 아니지만 `register.Stack`의 구현과 일치하는 맥락이다. 여기서 각 호출 단계의 “스택”은 코드 설명상 **호출 프레임**으로, 그 프레임들의 집합은 **호출 스택**으로 구분한다.
 
 ## 1. 시스템의 성격
 
 smips는 Go 프로그램에 포함해서 사용할 수 있도록 구성된 **64비트 고정 길이 명령어, 64비트 레지스터 기반 인터프리터 VM**이다. 명령어는 레지스터 번호를 지정하며, 메모리 접근은 블록 핸들과 블록 내부 오프셋을 별도로 사용한다.
 
+호출 구조의 중심은 **각 호출 프레임이 독립적인 레지스터 묶음을 소유하고, 부모 프레임에서 자식 프레임으로 인자를 전달하는 모델**이다. `Stack`은 `[]*Register`이며, 명령어의 레지스터 접근은 현재 최상단 프레임을 대상으로 한다. 별도 Process 사이의 호출은 이 모델과 구분해서 보아야 한다.
+
 `Process`가 명령어 배열, 프로그램 카운터, 레지스터 프레임 스택, 메모리, 파일 테이블, 호출 가능한 다른 `Process`의 목록을 소유한다. 명령어를 하나씩 실행하는 `Eval()`과 반복 실행하는 `Execute()`를 제공한다. 이름의 `Process`는 VM 실행 컨텍스트이며, OS 프로세스 생성이나 병렬 스케줄링은 구현되어 있지 않다.
 
 외부 의존 모듈, `main`, CLI, 어셈블러, 바이너리 로더, 예제, 테스트 파일은 없다. 호스트가 Go API로 명령어와 프로세스를 구성하는 형태로 해석할 수 있다. 다만 현재 생성자 결함 때문에 정상적인 실행 시작은 막혀 있다.
 
-근거: [go.mod](../go.mod), [Process 정의와 생성](../process/process.go#L10), [실행기](../process/execute.go#L11).
+근거: [go.mod](../go.mod), [Process 정의와 생성](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/process.go#L10), [실행기](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L11).
 
 ## 2. 구성요소와 의존 관계
 
@@ -42,7 +46,7 @@ flowchart TD
 
 독립 서비스나 별도 배포 단위로 분리된 구조는 아니다. 하나의 Go 라이브러리 안에서 상태와 책임을 패키지로 나눈 형태다. 특히 `process` 패키지에는 실행기뿐 아니라 문자열 메모리 표현과 시스템 호출 ABI도 들어 있다.
 
-근거: [Process 필드](../process/process.go#L10), [시스템 호출](../process/systemcall.go#L5), [문자열 표현](../process/string.go#L7).
+근거: [Process 필드](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/process.go#L10), [시스템 호출](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/systemcall.go#L5), [문자열 표현](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/string.go#L7).
 
 ## 3. 명령어와 값 모델
 
@@ -59,7 +63,7 @@ Wide의 정확한 구획은 `[63:24] wide-data:40 / [23:8] rd:16 / [7:0] op:8`�
 
 **현재의 디코더는 이 배치와 일치하지 않는다.** 생성자가 맞게 비트를 배치해도 읽을 때 다른 레지스터 번호와 연산 번호가 나온다. 따라서 이 표는 생성 함수와 주석에서 복원한 형식이며, 현재 실행기가 일관되게 준수하는 ISA로 볼 수 없다.
 
-근거: [생성 함수와 디코더](../opcode/opcode.go#L3).
+근거: [생성 함수와 디코더](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/opcode/opcode.go#L3).
 
 ### 3.2 레지스터 값과 연산
 
@@ -77,7 +81,7 @@ Wide의 정확한 구획은 `[63:24] wide-data:40 / [23:8] rd:16 / [7:0] op:8`�
 
 `OpEq`와 `OpNeq`는 주석의 `rd = 비교 결과`와 다르게 **조건 분기**로 구현되어 있다. 조건이 참이면 `PC = R[rd]`다. `OpJmp`는 `PC = R[ra]`를 수행한다. 라이브러리 호출은 이와 달리 `libs[ra]`로 접근하므로 `ra` 자체가 목록 인덱스다.
 
-근거: [연산 목록](../opcode/op.go#L7), [산술·분기·메모리·호출 실행](../process/execute.go#L17).
+근거: [연산 목록](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/opcode/op.go#L7), [산술·분기·메모리·호출 실행](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L17).
 
 ## 4. 레지스터 프레임과 호출 규약
 
@@ -109,11 +113,11 @@ Wide의 정확한 구획은 `[63:24] wide-data:40 / [23:8] rd:16 / [7:0] op:8`�
 
 그 결과 `params[0,1,2,4]`는 전용 `GetParams/SetParams`로는 접근되지만 일반 `Get/Set`으로는 접근되지 않는다. 따라서 전체 16비트 주소를 균일하게 사용할 수 있다는 계약은 성립하지 않는다.
 
-근거: [프레임 정의와 초기화](../register/reg.go#L5), [주소 매핑](../register/reg.go#L102), [Hi 별칭](../register/reg.go#L186).
+근거: [프레임 정의와 초기화](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/register/reg.go#L5), [주소 매핑](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/register/reg.go#L102), [Hi 별칭](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/register/reg.go#L186).
 
 ### 4.2 의도된 호출 규약
 
-`Stack.Call`과 `Stack.Plunder`는 다음 데이터 이동을 구현한다.
+부모는 자신의 `extra` 영역에 다음 호출의 인자를 준비한다. `Stack.Call`은 새 레지스터 프레임의 `params`에 이를 복사한 다음 프레임을 쌓는다. 이후 일반 레지스터 접근은 자식 프레임을 향한다. 자식이 `returns`에 결과를 준비하면 `Stack.Plunder`가 프레임을 꺼내고 부모의 `extra`에 결과를 복사한다.
 
 ```text
 호출 전: caller.extra[i]   → callee.params[i]
@@ -124,9 +128,9 @@ Wide의 정확한 구획은 `[63:24] wide-data:40 / [23:8] rd:16 / [7:0] op:8`�
 
 사용한 인자 수와 관계없이 16,383개 값 전체를 복사한다. 호출·복귀마다 각 방향으로 약 128 KiB를 복사하는 구조다. `Stack` 자체에는 반환 PC가 없고, 바이트코드의 함수 진입 주소를 저장하는 기능도 없다.
 
-**프로세스 간 연결은 미완성이다.** `OpLib`는 호출자 `p.stack`에 프레임을 추가한 뒤, 별도 스택을 가진 `p.libs[ra].Execute()`를 실행하고 호출자 스택에서 프레임을 제거한다. 라이브러리 스택으로 인자가 옮겨지거나 라이브러리의 반환값이 호출자로 옮겨지는 코드는 없다. 생성자 결함을 제외해도 이 경로는 의도된 프로세스 간 호출 규약을 충족하지 않는다.
+**프레임 호출 규약과 라이브러리 실행의 연결은 미완성이다.** `OpLib`는 호출자 `p.stack`에 프레임을 추가한 뒤, 별도 스택을 가진 `p.libs[ra].Execute()`를 실행하고 호출자 스택에서 프레임을 제거한다. 라이브러리 스택으로 인자가 옮겨지거나 라이브러리의 반환값이 호출자로 옮겨지는 코드는 없다. 따라서 확인된 프레임 호출 규약이 라이브러리 실행 경로에도 연결되어 있다고 볼 수 없다. 별도 Process 간 전달이 원래 목표였는지, 라이브러리 실행 시 호출자의 스택을 사용하려던 것인지는 코드만으로 확정할 수 없다.
 
-근거: [스택 호출·복귀](../register/reg.go#L74), [OpLib](../process/execute.go#L86), [Process별 스택 생성](../process/process.go#L21).
+근거: [스택 호출·복귀](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/register/reg.go#L74), [OpLib](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L86), [Process별 스택 생성](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/process.go#L21).
 
 ## 5. 메모리와 문자열
 
@@ -143,7 +147,7 @@ Wide의 정확한 구획은 `[63:24] wide-data:40 / [23:8] rd:16 / [7:0] op:8`�
 
 `OpLoad/OpStore`는 바이트를 상위 바이트부터 결합·분해하려는 빅엔디언 구조다. 크기는 `data & 0b111`이므로 현재 표현 범위는 **0…7바이트**이며 8은 0으로 처리된다. `OpStore`의 반복문은 별도 결함으로 정상 종료하지 못한다.
 
-근거: [메모리 구현](../memory/memory.go#L3), [메모리 명령](../process/execute.go#L70).
+근거: [메모리 구현](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/memory/memory.go#L3), [메모리 명령](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L70).
 
 ### 5.2 문자열 메모리 표현
 
@@ -159,7 +163,7 @@ Go의 `[]rune`를 사용하며 UTF-8 바이트 배열이나 NUL 종료 문자열
 
 현재 직렬화·역직렬화에는 결함이 있다. `WriteString`은 길이 바이트의 위치를 이동하지 않으며, 비어 있지 않은 문자열에서는 rune 쓰기 오프셋이 언더플로되어 패닉이 난다. `ReadString`은 길이 헤더 중 0바이트를 만나면 즉시 빈 문자열을 반환하므로 정상적인 짧은 문자열의 헤더도 읽지 못한다. `AddStringArgs`의 `paramCount`도 증가하지 않는다.
 
-근거: [문자열 읽기·쓰기](../process/string.go#L7), [호스트 인자 등록](../process/process.go#L41), [파일 경로 변환](../process/systemcall.go#L7).
+근거: [문자열 읽기·쓰기](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/string.go#L7), [호스트 인자 등록](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/process.go#L41), [파일 경로 변환](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/systemcall.go#L7).
 
 ## 6. 호스트 입출력 경계
 
@@ -180,7 +184,7 @@ Go의 `[]rune`를 사용하며 UTF-8 바이트 배열이나 NUL 종료 문자열
 
 파일 경로는 `os` API로 직접 전달된다. 경로 제한, 권한 정책, VM trap 변환은 없다. 따라서 현재 구조에서 호스트 파일 접근 권한을 별도로 제한하는 샌드박스를 도출할 수 없다.
 
-근거: [파일 테이블·모드·교체 API](../files/files.go#L8), [입출력](../files/files.go#L91), [시스템 호출 연결](../process/systemcall.go#L5).
+근거: [파일 테이블·모드·교체 API](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/files/files.go#L8), [입출력](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/files/files.go#L91), [시스템 호출 연결](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/systemcall.go#L5).
 
 ## 7. 실행과 자원 수명
 
@@ -203,7 +207,7 @@ Go의 `[]rune`를 사용하며 UTF-8 바이트 배열이나 NUL 종료 문자열
 
 종료 명령, 취소, 명령 수 예산, 프로세스 정리 API, 열린 파일 전체 닫기, 최종 프레임 반환, 호스트에 실행 결과를 읽어주는 API는 없다. 실패는 여러 곳에서 Go 패닉으로 전파되고 VM trap이나 오류 반환으로 일원화되어 있지 않다. 미등록 연산은 시스템 호출 분기로 이동한 뒤 조용히 무시된다.
 
-근거: [실행·종료 조건](../process/execute.go#L11), [라이브러리 등록](../process/process.go#L36), [시스템 호출 switch](../process/systemcall.go#L5).
+근거: [실행·종료 조건](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L11), [라이브러리 등록](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/process.go#L36), [시스템 호출 switch](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/systemcall.go#L5).
 
 ## 8. 설계 의도와 구현의 주요 차이
 
@@ -225,7 +229,7 @@ Go의 `[]rune`를 사용하며 UTF-8 바이트 배열이나 NUL 종료 문자열
 | 실수 나머지·메모리 해제 | `OpFMod` 실행 없음, `Free` 명령 없음 | API·연산 선언과 VM에서 실제 제공하는 기능이 다름 |
 | I/O 결과·오류 | 쓰기 결과는 1, 실제 전송 길이 무시, EOF도 패닉 | 바이트 수·부분 전송·종료·오류 ABI가 미확정 |
 
-근거: [register](../register/reg.go#L26), [opcode](../opcode/opcode.go#L8), [실행기](../process/execute.go#L11), [문자열](../process/string.go#L13), [파일 쓰기](../files/files.go#L138).
+근거: [register](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/register/reg.go#L26), [opcode](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/opcode/opcode.go#L8), [실행기](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/execute.go#L11), [문자열](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/process/string.go#L13), [파일 쓰기](https://github.com/snowmerak/smips/blob/89668635677b26c6f2c604e66eec24ef998af3fa/files/files.go#L138).
 
 ## 9. 검증 근거와 한계
 
@@ -255,11 +259,11 @@ PC, 산술, 프로세스 간 호출, 자원 수명에 대한 설명은 소스 �
 
 ## 10. 복원된 설계 방향과 남은 결정
 
-구조와 주석을 함께 보면 **고정 길이 ISA와 큰 레지스터 프레임을 사용하고, 호출 규약으로 Process들을 조합하며, 메모리와 호스트 I/O를 정수 핸들로 연결하려는 VM**이라는 설계 의도를 복원할 수 있다. 단순한 자료구조, 명시적인 바이트 조합, 프레임 풀 재사용이 구현상의 특징이다. 이러한 선택의 역사적 이유나 성능 목표를 증명하는 자료는 없다.
+구조와 주석, 작성자의 회상을 함께 보면 **고정 길이 ISA를 사용하고, 각 호출 프레임이 자기 레지스터를 가지며, 부모가 인자를 준비해 자식 프레임을 호출하고 반환값을 받는 VM**이라는 설계 의도를 복원할 수 있다. 메모리와 호스트 I/O는 정수 핸들로 연결된다. 단순한 자료구조, 명시적인 바이트 조합, 프레임 풀 재사용이 구현상의 특징이다. 이러한 선택의 역사적 이유나 성능 목표를 증명하는 자료는 없다.
 
 후속 구현 전에 결정할 필요가 있는 부분은 다음과 같다.
 
-1. **호출 단위:** 별도 Process를 호출할 것인지, 하나의 Process 안에서 프레임과 PC를 전환할 것인지. 현재 두 모델이 연결되지 않은 채 함께 있다.
+1. **프레임 호출과 코드 실행의 연결:** 프레임마다 레지스터를 소유하는 모델은 코드와 작성자의 회상이 뒷받침한다. 이 프레임을 사용해 하위 코드를 어떻게 실행하려던 것인지, 특히 별도 Process로 등록된 라이브러리와 스택·PC를 어떻게 연결할 것인지는 추가 확인이 필요하다.
 2. **상태 공유:** 라이브러리에 전달하는 정수 핸들이 어느 메모리·파일 테이블에 속하는지, 데이터를 복사할지 공유할지. 같은 숫자의 핸들은 Process 사이에서 같은 객체를 의미하지 않는다.
 3. **ISA·ABI의 기준:** 생성자의 비트 배치, 레지스터 주소, 비교 연산, 전송 크기 8바이트, I/O 결과의 의미를 무엇으로 확정할지.
 4. **호출 수명:** 재호출 시 PC·레지스터 초기화와 메모리·파일 정리의 범위, 호스트가 최종 결과를 얻는 방법.

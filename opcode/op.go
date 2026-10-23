@@ -39,10 +39,10 @@ const (
 	// rd = ra >> rb
 	OpShr
 	// OpEq is eq operation.
-	// rd = ra == rb
+	// if ra == rb, pc = value in rd.
 	OpEq
 	// OpNeq is ne operation.
-	// rd = ra != rb
+	// if ra != rb, pc = value in rd.
 	OpNeq
 	// OpFAdd is lt operation.
 	// rd = ra + rb in float
@@ -71,14 +71,14 @@ const (
 	OpAlloc
 	// OpLoad is load operation.
 	// rd = ra[rb] with data(size).
-	// data is 8 bit data.
+	// data is a byte count from 0 to 8.
 	OpLoad
 	// OpStore is store operation.
 	// ra[rb] = rd with data(size).
-	// data is 3 bit size for this
+	// data is a byte count from 0 to 8.
 	OpStore
 	// OpLib is library call operation.
-	// ra is address of library.
+	// ra is the index of registered code, executed on a new frame in this runtime.
 	// can pass prameter to library via extra registers.
 	// can receive return value from library via extra registers.
 	OpLib

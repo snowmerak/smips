@@ -18,5 +18,7 @@ func SystemCall(p *Process, op opcode.Opcode) {
 		p.stack.SetHi(p.files.WriteFile(p.stack.Get(op.Ra()), op.Data(), p.stack.Get(op.Rd())))
 	case opcode.WriteFileAt:
 		p.stack.SetHi(p.files.WriteFileAt(p.stack.Get(op.Ra()), p.stack.Get(op.Rb()), op.Data(), p.stack.Get(op.Rd())))
+	default:
+		panic("process: unknown opcode")
 	}
 }

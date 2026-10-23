@@ -1,7 +1,10 @@
 package files
 
 import (
+	"encoding/binary"
+	"errors"
 	"io"
+	"math"
 	"os"
 )
 
@@ -46,13 +49,8 @@ func (f *Files) OverrideStderr(writer io.Writer) {
 	f.table[uint64(Stderr)] = writer
 }
 
-// OpenFileReader opens a file.
+// OpenFile opens a file and returns a reusable VM descriptor.
 func (f *Files) OpenFile(path string, mod uint8) uint64 {
-	index := uint64(len(f.table))
-	if len(f.tombs) > 0 {
-		index = f.tombs[len(f.tombs)-1]
-		f.tombs = f.tombs[:len(f.tombs)-1]
-	}
 	var file *os.File
 	var err error
 	switch mod {
@@ -62,16 +60,28 @@ func (f *Files) OpenFile(path string, mod uint8) uint64 {
 		file, err = os.Create(path)
 	case FileAppender:
 		file, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	default:
+		panic("files: invalid open mode")
 	}
 	if err != nil {
 		panic(err)
+	}
+	// Do not consume a reusable descriptor until opening has succeeded.
+	index := uint64(len(f.table))
+	if len(f.tombs) > 0 {
+		index = f.tombs[len(f.tombs)-1]
+		f.tombs = f.tombs[:len(f.tombs)-1]
 	}
 	f.table[index] = file
 	return index
 }
 
-// CloseFile closes a file.
+// CloseFile closes an owned file. Standard streams are borrowed from the host
+// and cannot be closed or recycled as ordinary descriptors.
 func (f *Files) CloseFile(index uint64) uint64 {
+	if index <= uint64(Stderr) {
+		return 0
+	}
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -88,9 +98,12 @@ func (f *Files) CloseFile(index uint64) uint64 {
 	return 1
 }
 
-// ReadFile reads a file.
+// ReadFile reads up to size bytes as a big-endian value. EOF returns zero.
 func (f *Files) ReadFile(index uint64, size uint8) uint64 {
-	size = size & 0b00000111
+	checkSize(size)
+	if size == 0 {
+		return 0
+	}
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -100,20 +113,20 @@ func (f *Files) ReadFile(index uint64, size uint8) uint64 {
 		panic("FD is not Reader")
 	}
 	buf := make([]byte, size)
-	_, err := reader.Read(buf)
-	if err != nil {
+	n, err := reader.Read(buf)
+	if err != nil && !errors.Is(err, io.EOF) {
 		panic(err)
 	}
-	result := uint64(0)
-	for i := uint8(0); i < size; i++ {
-		result = result<<8 | uint64(buf[i])
-	}
-	return result
+	return decode(buf[:n])
 }
 
 // ReadFileAt reads a file at a specified offset.
 func (f *Files) ReadFileAt(index uint64, offset uint64, size uint8) uint64 {
-	size = size & 0b00000111
+	checkSize(size)
+	checkOffset(offset)
+	if size == 0 {
+		return 0
+	}
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -123,20 +136,19 @@ func (f *Files) ReadFileAt(index uint64, offset uint64, size uint8) uint64 {
 		panic("FD is not ReaderAt")
 	}
 	buf := make([]byte, size)
-	_, err := reader.ReadAt(buf, int64(offset))
-	if err != nil {
+	n, err := reader.ReadAt(buf, int64(offset))
+	if err != nil && !errors.Is(err, io.EOF) {
 		panic(err)
 	}
-	result := uint64(0)
-	for i := uint8(0); i < size; i++ {
-		result = result<<8 | uint64(buf[i])
-	}
-	return result
+	return decode(buf[:n])
 }
 
-// WriteFile writes a file.
+// WriteFile writes size low bytes in big-endian order and returns the byte count.
 func (f *Files) WriteFile(index uint64, size uint8, value uint64) uint64 {
-	size = size & 0b00000111
+	checkSize(size)
+	if size == 0 {
+		return 0
+	}
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -145,21 +157,23 @@ func (f *Files) WriteFile(index uint64, size uint8, value uint64) uint64 {
 	if !ok {
 		panic("FD is not Writer")
 	}
-	buf := make([]byte, size)
-	for i := size - 1; i >= 0; i++ {
-		buf[i] = byte(value & 0xFF)
-		value = value >> 8
-	}
-	_, err := writer.Write(buf)
+	n, err := writer.Write(encode(value, size))
 	if err != nil {
 		panic(err)
 	}
-	return 1
+	if n != int(size) {
+		panic(io.ErrShortWrite)
+	}
+	return uint64(n)
 }
 
 // WriteFileAt writes a file at a specified offset.
 func (f *Files) WriteFileAt(index uint64, offset uint64, size uint8, value uint64) uint64 {
-	size = size & 0b00000111
+	checkSize(size)
+	checkOffset(offset)
+	if size == 0 {
+		return 0
+	}
 	file, ok := f.table[index]
 	if !ok {
 		return 0
@@ -168,14 +182,38 @@ func (f *Files) WriteFileAt(index uint64, offset uint64, size uint8, value uint6
 	if !ok {
 		panic("FD is not WriterAt")
 	}
-	buf := make([]byte, size)
-	for i := size - 1; i >= 0; i++ {
-		buf[i] = byte(value & 0xFF)
-		value = value >> 8
-	}
-	_, err := writer.WriteAt(buf, int64(offset))
+	n, err := writer.WriteAt(encode(value, size), int64(offset))
 	if err != nil {
 		panic(err)
 	}
-	return 1
+	if n != int(size) {
+		panic(io.ErrShortWrite)
+	}
+	return uint64(n)
+}
+
+func checkSize(size uint8) {
+	if size > 8 {
+		panic("files: byte count exceeds 8")
+	}
+}
+
+func checkOffset(offset uint64) {
+	if offset > math.MaxInt64 {
+		panic("files: offset exceeds int64")
+	}
+}
+
+func encode(value uint64, size uint8) []byte {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], value)
+	return buf[8-int(size):]
+}
+
+func decode(buf []byte) uint64 {
+	var value uint64
+	for _, b := range buf {
+		value = value<<8 | uint64(b)
+	}
+	return value
 }

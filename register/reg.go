@@ -2,11 +2,21 @@ package register
 
 import "sync"
 
-// single is the number of each registers.
-const single = 16383
+// BankSize is the number of registers in each frame-local bank.
+const BankSize = 16383
+
+// Instruction addresses cover four reserved slots followed by the four banks.
+const (
+	ParamsBase    uint16 = 4
+	TemporaryBase        = ParamsBase + BankSize
+	ExtraBase            = TemporaryBase + BankSize
+	ReturnsBase          = ExtraBase + BankSize
+)
+
+const single = BankSize
 
 // Register is the register of the VM.
-// 8 bit zero, 8 bit one, 8 bit two, 8 bit four,
+// Addresses 0, 1, 2, 3 initially contain uint64 values 0, 1, 2, 4.
 // 16383 registers of params, 16383 registers of temporary,
 // 16383 registers of extra, 16383 registers of returns.
 // extra is the parameter of stack when call, returns is the return of stack when plunder.
@@ -25,19 +35,7 @@ type Register struct {
 // New is the constructor of Register.
 func New() *Register {
 	reg := pool.Get().(*Register)
-	reg.zero = 0
-	reg.one = 1
-	reg.two = 2
-	reg.four = 4
-	for i := 0; i < single; i++ {
-		reg.params[i] = 0
-	}
-	for i := 0; i < single*2; i++ {
-		reg.temporary[i] = 0
-	}
-	for i := 0; i < single; i++ {
-		reg.returns[i] = 0
-	}
+	*reg = Register{one: 1, two: 2, four: 4}
 	return reg
 }
 
@@ -84,6 +82,7 @@ func (s *Stack) Call(reg *Register) {
 // Pop is the pop of Stack.
 func (s *Stack) Pop() *Register {
 	r := (*s)[len(*s)-1]
+	(*s)[len(*s)-1] = nil
 	*s = (*s)[:len(*s)-1]
 	return r
 }
@@ -91,6 +90,9 @@ func (s *Stack) Pop() *Register {
 // Plunder remove the last register of Stack.
 // the removed register will export the returns to the extra of the last register.
 func (s *Stack) Plunder() {
+	if len(*s) < 2 {
+		panic("register: cannot return from root frame")
+	}
 	pop := s.Pop()
 	last := s.Last()
 	for i := 0; i < single; i++ {
@@ -101,50 +103,33 @@ func (s *Stack) Plunder() {
 
 // Set is the set of Register.
 func (r *Stack) Set(index uint16, value uint64) {
-	last := r.Last()
-	switch index {
-	case 0:
-		last.zero = value
-	case 1:
-		last.one = value
-	case 2:
-		last.two = value
-	case 4:
-		last.four = value
-	default:
-		if index < single {
-			last.params[index] = value
-		} else if index < single*2 {
-			last.temporary[index-single] = value
-		} else if index < single*3 {
-			last.extra[index-single*2] = value
-		} else {
-			last.returns[index-single*3] = value
-		}
-	}
+	*r.Last().slot(index) = value
 }
 
 // Get is the get of Register.
 func (r *Stack) Get(index uint16) uint64 {
-	last := r.Last()
+	return *r.Last().slot(index)
+}
+
+func (r *Register) slot(index uint16) *uint64 {
 	switch index {
 	case 0:
-		return last.zero
+		return &r.zero
 	case 1:
-		return last.one
+		return &r.one
 	case 2:
-		return last.two
-	case 4:
-		return last.four
+		return &r.two
+	case 3:
+		return &r.four
 	default:
-		if index < single {
-			return last.params[index]
-		} else if index < single*2 {
-			return last.temporary[index-single]
-		} else if index < single*3 {
-			return last.extra[index-single*2]
+		if index < TemporaryBase {
+			return &r.params[index-ParamsBase]
+		} else if index < ExtraBase {
+			return &r.temporary[index-TemporaryBase]
+		} else if index < ReturnsBase {
+			return &r.extra[index-ExtraBase]
 		} else {
-			return last.returns[index-single*3]
+			return &r.returns[index-ReturnsBase]
 		}
 	}
 }

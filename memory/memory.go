@@ -20,6 +20,15 @@ func New() Memory {
 	}
 }
 
+// Size returns the size of an allocated block, or zero for a missing block.
+func (m *Memory) Size(addr uint64) uint64 {
+	block, ok := m.table[addr]
+	if !ok {
+		return 0
+	}
+	return uint64(len(block.Value))
+}
+
 // Get is the getter of the memory.
 // Address is the key of the memory.
 // Offset is the index of the block.
